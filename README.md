@@ -11,7 +11,7 @@ A.k.a **fomo**
 | Feature                                                   | Supported |
 |-----------------------------------------------------------|:---------:|
 | Multithreading                                            |     ✅     |
-| Auto-tasks                                                |     ✅     |
+| Auto-tasks                                                |     MT     |
 | Daily Login                                               |     ✅     |
 
 ## Prerequisites
