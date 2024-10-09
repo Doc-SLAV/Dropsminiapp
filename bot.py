@@ -62,14 +62,17 @@ def check_tasks(token):
     time.sleep(5)
     headers = get_headers(token)
     print("Memeriksa tasks yang tersedia...")
-    response = requests.get(f"{BASE_API_URL}/quest/active", headers=headers)
+    response = requests.get(f"{BASE_API_URL}/api/quest", headers=headers)
     
     tasks = response.json()
     any_claimed = False  # Variabel untuk melacak apakah ada tugas yang diklaim
+
     for task in tasks:
         for quest in task['quests']:
-            if quest["claimAllowed"]:
-                claim_task(token, quest["id"])
+            print(f"Checking quest: {quest['name']} - Status: {quest['status']}")
+            if quest.get("claimAllowed"):
+                task_id = quest["id"]
+                claim_task(token, task_id)
                 any_claimed = True  # Ada tugas yang diklaim
 
     if not any_claimed:
@@ -79,7 +82,27 @@ def claim_task(token, task_id):
     time.sleep(5)
     headers = get_headers(token)
     print(f"Mengklaim task ID: {task_id}")
-    requests.put(f"{BASE_API_URL}/quest/{task_id}/claim", headers=headers)
+    response = requests.put(f"{BASE_API_URL}/api/quest/{task_id}/claim", headers=headers)
+    data = response.json()
+
+    if response.status_code == 200:
+        print(f"Task {task_id} claimed successfully.")
+        # After claiming, verify the task
+        verify_task(token, task_id)
+    else:
+        print(f"Failed to claim task {task_id}. Response: {data}")
+
+def verify_task(token, task_id):
+    time.sleep(5)
+    headers = get_headers(token)
+    print(f"Verifying task ID: {task_id}")
+    response = requests.post(f"{BASE_API_URL}/api/quest/{task_id}/verify", headers=headers)
+    data = response.json()
+
+    if data.get("success", False):
+        print(f"Task {task_id} verified successfully.")
+    else:
+        print(f"Failed to verify task {task_id}. Response: {data}")
 
 def dynamic_countdown(sleep_time):
     while sleep_time > 0:
