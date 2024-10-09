@@ -62,7 +62,7 @@ def check_tasks(token):
     time.sleep(5)
     headers = get_headers(token)
     print("Memeriksa tasks yang tersedia...")
-    response = requests.get(f"{BASE_API_URL}/api/quest", headers=headers)
+    response = requests.get(f"{BASE_API_URL}/quest/active", headers=headers)
     
     tasks = response.json()
     any_claimed = False  # Variabel untuk melacak apakah ada tugas yang diklaim
@@ -82,7 +82,7 @@ def claim_task(token, task_id):
     time.sleep(5)
     headers = get_headers(token)
     print(f"Mengklaim task ID: {task_id}")
-    response = requests.put(f"{BASE_API_URL}/api/quest/{task_id}/claim", headers=headers)
+    response = requests.put(f"{BASE_API_URL}/quest/{task_id}/claim", headers=headers)
     data = response.json()
 
     if response.status_code == 200:
@@ -96,7 +96,7 @@ def verify_task(token, task_id):
     time.sleep(5)
     headers = get_headers(token)
     print(f"Verifying task ID: {task_id}")
-    response = requests.post(f"{BASE_API_URL}/api/quest/{task_id}/verify", headers=headers)
+    response = requests.post(f"{BASE_API_URL}/quest/{task_id}/verify", headers=headers)
     data = response.json()
 
     if data.get("success", False):
