@@ -32,11 +32,11 @@ Before you begin, make sure you have the following installed:
 ```
 
 ## Installation
-You can download the [**repository**](https://github.com/Doc-SLAV/etherDrop/archive/refs/heads/main.zip) by cloning it to your system and installing the necessary dependencies:
+You can download the [**repository**](https://github.com/Doc-SLAV/Dropsminiapp/archive/refs/heads/main.zip) by cloning it to your system and installing the necessary dependencies:
 
 # Linux manual installation
 ```shell
-git clone https://github.com/Doc-SLAV/etherDrop.git
+git clone https://github.com/Doc-SLAV/Dropsminiapp.git
 cd etherDrop
 python3 -m venv venv
 source venv/bin/activate
@@ -47,7 +47,7 @@ python3 bot.py
 
 # Windows manual installation
 ```shell
-git clone https://github.com/Doc-SLAV/etherDrop.git
+git clone https://github.com/Doc-SLAV/Dropsminiapp.git
 cd etherDrop
 python -m venv venv
 venv\Scripts\activate
@@ -60,5 +60,6 @@ python bot.py
 
 For support or questions, you can contact me
 
+[![Static Badge](https://img.shields.io/badge/Telegram-Channel-Link?style=for-the-badge&logo=Telegram&logoColor=white&logoSize=auto&color=blue)](https://t.me/buruhcrypt)
 [![Static Badge](https://img.shields.io/badge/Telegram-Channel-Link?style=for-the-badge&logo=Telegram&logoColor=white&logoSize=auto&color=blue)](https://t.me/zxcvbnmasdfghjklqwertyuiop_12345)
 
