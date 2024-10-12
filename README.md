@@ -14,6 +14,7 @@ a.k.a **etherDrop**
 | Multithreading                                            |     ✅     |
 | Auto-tasks                                                |     ✅     |
 | Daily Login                                               |     ✅     |
+| Send Notify to telegram                                   |     ✅     |
 
 ## Prerequisites
 Before you begin, make sure you have the following installed:
