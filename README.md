@@ -1,5 +1,6 @@
-# **etherDrop**
-A.k.a **fomo**
+# **DROPS MINI APP**
+a.k.a **fomo**
+a.k.a **etherDrop**
 
 [![Static Badge](https://img.shields.io/badge/Telegram-Bot%20Link-Link?style=for-the-badge&logo=Telegram&logoColor=white&logoSize=auto&color=blue)](https://t.me/fomo/app?startapp=ref_STVKI)
 
@@ -11,7 +12,7 @@ A.k.a **fomo**
 | Feature                                                   | Supported |
 |-----------------------------------------------------------|:---------:|
 | Multithreading                                            |     ✅     |
-| Auto-tasks                                                |     MT     |
+| Auto-tasks                                                |     ✅     |
 | Daily Login                                               |     ✅     |
 
 ## Prerequisites
@@ -37,7 +38,7 @@ You can download the [**repository**](https://github.com/Doc-SLAV/Dropsminiapp/a
 # Linux manual installation
 ```shell
 git clone https://github.com/Doc-SLAV/Dropsminiapp.git
-cd etherDrop
+cd Dropsminiapp
 python3 -m venv venv
 source venv/bin/activate
 pip3 install request
@@ -48,7 +49,7 @@ python3 bot.py
 # Windows manual installation
 ```shell
 git clone https://github.com/Doc-SLAV/Dropsminiapp.git
-cd etherDrop
+cd Dropsminiapp
 python -m venv venv
 venv\Scripts\activate
 pip install request
