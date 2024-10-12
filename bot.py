@@ -1,10 +1,23 @@
+# NOT FOR SALE, FREE TO CLONE OR RENAME
+# PAY IT FORDWARD!
 import requests
 import json
-from datetime import datetime, timedelta
 import time
-from colorama import Fore, Style, init
+import os
+from datetime import datetime, timedelta
+from colorama import Fore, Back, Style, init
 
+# Initialize colorama
 init(autoreset=True)
+
+class Endpoints:
+    AUTH_LOGIN = "/auth/login"
+    USER_CURRENT = "/user/current"
+    DAILY_BONUS = "/bonus/dailyBonus"
+    TASKS = "/quest"
+    VERIFY_TASK = "/quest/{task_id}/verify"
+    CLAIM_TASK = "/quest/{task_id}/claim"
+    CLAIM_REF = "/refLink/claim"
 
 BASE_API_URL = "https://api.miniapp.dropstab.com/api"
 BASE_HEADERS = {
@@ -28,122 +41,157 @@ def get_headers(token=None):
         headers["authorization"] = f"Bearer {token}"
     return headers
 
+def retry_request(func, *args, retries=3, delay=5, **kwargs):
+    """Retries a function if it raises an exception."""
+    for attempt in range(retries):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            print(f"{Fore.YELLOW}Error on attempt {attempt + 1}: {e}{Style.RESET_ALL}")
+            if attempt < retries - 1:
+                print(f"{Fore.YELLOW}Retrying in {delay} seconds...{Style.RESET_ALL}")
+                time.sleep(delay)
+            else:
+                print(f"{Fore.RED}Max retries reached.{Style.RESET_ALL}")
+                raise
+
 def get_token_and_login(payload):
+    time.sleep(5)
     headers = get_headers()
     body = json.dumps({"webAppData": payload})
-    print(Fore.CYAN + "Logging in...")
-    
-    response = requests.post(f"{BASE_API_URL}/auth/login", headers=headers, data=body)
-    if response.status_code == 200:
-        try:
-            token = response.json()["jwt"]["access"]["token"]
-            print(Fore.GREEN + "Login successful.")
+    print(f"{Fore.CYAN}Attempting to login with payload...{Style.RESET_ALL}")
+    try:
+        response = requests.post(f"{BASE_API_URL}{Endpoints.AUTH_LOGIN}", headers=headers, data=body, timeout=10)
+        response.raise_for_status()
+        token = response.json().get("jwt", {}).get("access", {}).get("token", None)
+        if token:
+            print(f"{Fore.GREEN}Login successful.{Style.RESET_ALL}")
             return token
-        except KeyError:
-            print(Fore.RED + "Login failed: Incorrect response structure.")
-            raise Exception("Login failed: Incorrect response structure.")
-    else:
-        print(Fore.RED + f"Login failed: {response.status_code} - {response.text}")
-        raise Exception(f"Login failed: {response.status_code} - {response.text}")
+        else:
+            raise ValueError("Failed to retrieve token from response.")
+    except requests.RequestException as e:
+        print(f"{Fore.RED}Request failed during login: {e}{Style.RESET_ALL}")
+        raise
+    except ValueError as e:
+        print(f"{Fore.RED}Value error: {e}{Style.RESET_ALL}")
+        raise
 
 def get_user_info(token):
+    time.sleep(5)
     headers = get_headers(token)
-    print(Fore.CYAN + "Fetching user information...")
-    
-    response = requests.get(f"{BASE_API_URL}/user/current", headers=headers)
-    if response.status_code == 200:
+    print(f"{Fore.CYAN}Fetching user info...{Style.RESET_ALL}")
+    try:
+        response = requests.get(f"{BASE_API_URL}{Endpoints.USER_CURRENT}", headers=headers, timeout=10)
+        response.raise_for_status()
         data = response.json()
-        print(Fore.GREEN + f"Account: {data['tgUsername']}, Balance: {data['balance']}")
+        print(f"{Fore.GREEN}Account: {data['tgUsername']}, Balance: {data['balance']}{Style.RESET_ALL}")
         return data
-    else:
-        print(Fore.RED + f"Failed to fetch user information: {response.status_code} - {response.text}")
-        raise Exception(f"Failed to fetch user information: {response.status_code} - {response.text}")
+    except requests.RequestException as e:
+        print(f"{Fore.RED}Request failed while fetching user info: {e}{Style.RESET_ALL}")
+        raise
+    except KeyError as e:
+        print(f"{Fore.RED}Key error in user info response: {e}{Style.RESET_ALL}")
+        raise
 
 def daily_bonus(token):
+    time.sleep(5)
     headers = get_headers(token)
-    print(Fore.CYAN + "Claiming daily bonus...")
-    
-    response = requests.post(f"{BASE_API_URL}/bonus/dailyBonus", headers=headers)
-    if response.status_code == 200:
+    print(f"{Fore.CYAN}Attempting to collect daily bonus...{Style.RESET_ALL}")
+    try:
+        response = requests.post(f"{BASE_API_URL}{Endpoints.DAILY_BONUS}", headers=headers, timeout=10)
+        response.raise_for_status()
         data = response.json()
-        if data["result"]:
-            print(Fore.GREEN + f"Daily bonus claimed. Streaks: {data['streaks']}")
-    else:
-        print(Fore.RED + f"Failed to claim daily bonus: {response.status_code} - {response.text}")
-        raise Exception(f"Failed to claim daily bonus: {response.status_code} - {response.text}")
+        if data.get("result", False):
+            print(f"{Fore.GREEN}Daily login successful. Streaks: {data['streaks']}{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.YELLOW}Daily bonus already claimed or not available.{Style.RESET_ALL}")
+    except requests.RequestException as e:
+        print(f"{Fore.RED}Request failed while claiming daily bonus: {e}{Style.RESET_ALL}")
+    except KeyError as e:
+        print(f"{Fore.RED}Key error in daily bonus response: {e}{Style.RESET_ALL}")
 
-def check_tasks(token):
+def fetch_and_check_tasks(token):
+    time.sleep(5)
     headers = get_headers(token)
-    print(Fore.CYAN + "Checking available tasks...")
-    
-    response = requests.get(f"{BASE_API_URL}/quest", headers=headers)
-    if response.status_code == 200:
-        tasks = response.json()
-        any_claimed = False
+    print(f"{Fore.CYAN}Fetching and checking tasks from the external source...{Style.RESET_ALL}")
 
-        for task in tasks:
-            for quest in task['quests']:
-                print(Fore.YELLOW + f"Checking quest: {quest['name']} - Status: {quest['status']}")
-                if quest.get("claimAllowed"):
-                    task_id = quest["id"]
-                    if quest["status"] == "claimed":
-                        print(Fore.MAGENTA + f"Task {task_id} is already claimed. Skipping verification.")
-                        continue
+    try:
+        response = requests.get(f"{BASE_API_URL}{Endpoints.TASKS}", headers=headers)
+        response.raise_for_status()
+        tasks_data = response.json()
+        task_categories_count = len(tasks_data)
+        print(f"{Fore.GREEN}Fetched {task_categories_count} task categories.{Style.RESET_ALL}")
 
-                    if verify_task(token, task_id):
-                        claim_task(token, task_id)
-                        any_claimed = True
+        any_claimed_or_clicked = False
 
-        return any_claimed
-    else:
-        print(Fore.RED + f"Failed to check tasks: {response.status_code} - {response.text}")
-        raise Exception(f"Failed to check tasks: {response.status_code} - {response.text}")
+        for task_category in tasks_data:
+            task_count = len(task_category['quests'])
+            print(f"{Fore.CYAN}Processing {task_count} tasks in category: {task_category['name']}{Style.RESET_ALL}")
 
-def verify_task(token, task_id):
-    headers = get_headers(token)
-    print(Fore.CYAN + f"Verifying task ID: {task_id}")
-    response = requests.post(f"{BASE_API_URL}/quest/{task_id}/verify", headers=headers)
-    data = response.json()
+            for task in task_category['quests']:
+                print(f"{Fore.BLUE}Task: {task['name']}, Status: {task['status']}, Claim Allowed: {task.get('claimAllowed', 'Not Specified')}{Style.RESET_ALL}")
 
-    if response.status_code == 200 and data.get("success", False):
-        print(Fore.GREEN + f"Task {task_id} verified successfully.")
+                if task.get("claimAllowed") is True:
+                    claim_task(token, task["id"])
+                    any_claimed_or_clicked = True
+
+                elif task.get("claimAllowed") is False and task_category['name'] == "Daily":
+                    verify_daily_task(token, task["id"])
+                    any_claimed_or_clicked = True
+
+        if not any_claimed_or_clicked:
+            print(f"{Fore.YELLOW}No tasks available to claim or click.{Style.RESET_ALL}")
+            return False
         return True
-    else:
-        print(Fore.RED + f"ERROR: Failed to verify task {task_id}. Response: {response.status_code} - {response.text}")
+
+    except requests.RequestException as e:
+        print(f"{Fore.RED}Request failed while fetching tasks: {e}{Style.RESET_ALL}")
+        return False
+    except KeyError as e:
+        print(f"{Fore.RED}Key error in task fetching response: {e}{Style.RESET_ALL}")
+        return False
+    except Exception as e:
+        print(f"{Fore.RED}An error occurred: {e}{Style.RESET_ALL}")
         return False
 
 def claim_task(token, task_id):
     headers = get_headers(token)
-    print(Fore.CYAN + f"Claiming task ID: {task_id}")
-    
-    response = requests.put(f"{BASE_API_URL}/quest/{task_id}/claim", headers=headers)
-    if response.status_code == 200:
-        print(Fore.GREEN + f"Task {task_id} claimed successfully.")
-        if not verify_task(token, task_id):
-            print(Fore.RED + f"WARNING: Task {task_id} claimed but could not be verified.")
-    else:
-        print(Fore.RED + f"ERROR: Failed to claim task {task_id}. Response: {response.json()}")
+    try:
+        print(f"{Fore.CYAN}Attempting to claim task with ID: {task_id}{Style.RESET_ALL}")
+        response = requests.put(f"{BASE_API_URL}{Endpoints.CLAIM_TASK.format(task_id=task_id)}", headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        print(f"{Fore.GREEN}Claim response data: {data}{Style.RESET_ALL}")  
+    except requests.RequestException as e:
+        print(f"{Fore.RED}Request failed while claiming task ID {task_id}: {e}{Style.RESET_ALL}")
+
+def verify_daily_task(token, task_id):
+    headers = get_headers(token)
+    try:
+        print(f"{Fore.CYAN}Verifying daily task with ID: {task_id}{Style.RESET_ALL}")
+        response = requests.put(f"{BASE_API_URL}{Endpoints.VERIFY_TASK.format(task_id=task_id)}", headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        print(f"{Fore.GREEN}Verify response data: {data}{Style.RESET_ALL}")  
+    except requests.RequestException as e:
+        print(f"{Fore.RED}Request failed while verifying daily task ID {task_id}: {e}{Style.RESET_ALL}")
 
 def claim_referral(token):
     headers = get_headers(token)
-    print(Fore.CYAN + "Claiming referral...")
-
-    response = requests.post(f"{BASE_API_URL}/refLink/claim", headers=headers)
-    if response.status_code == 200:
+    try:
+        print(f"{Fore.CYAN}Attempting to claim referral link...{Style.RESET_ALL}")
+        response = requests.post(f"{BASE_API_URL}{Endpoints.CLAIM_REF}", headers=headers)
+        response.raise_for_status()
         data = response.json()
-        if data.get("success", False):
-            print(Fore.GREEN + "Referral claimed successfully!")
-        else:
-            print(Fore.RED + "Failed to claim referral:", data.get("message", "Unknown error."))
-    else:
-        print(Fore.RED + f"Failed to claim referral: {response.status_code} - {response.text}")
-        raise Exception(f"Failed to claim referral: {response.status_code} - {response.text}")
+        print(f"{Fore.GREEN}Claim referral response data: {data}{Style.RESET_ALL}") 
+    except requests.RequestException as e:
+        print(f"{Fore.RED}Request failed while claiming referral link: {e}{Style.RESET_ALL}")
 
 def dynamic_countdown(sleep_time):
     while sleep_time > 0:
         hours, remainder = divmod(sleep_time, 3600)
         minutes, seconds = divmod(remainder, 60)
-        print(f"\rWaiting until 00:01 UTC to restart... {int(hours):02}:{int(minutes):02}:{int(seconds):02}", end="")
+        print(f"\r{Fore.CYAN}Waiting until 00:01 UTC to restart... {int(hours):02}:{int(minutes):02}:{int(seconds):02}{Style.RESET_ALL}", end="")
         time.sleep(1)
         sleep_time -= 1
     print()
@@ -157,21 +205,28 @@ def wait_until_midnight():
     dynamic_countdown(int(sleep_time))
 
 def process_queries():
+    if not os.path.exists('sesi.txt'):
+        print(f"{Fore.RED}Error: sesi.txt file not found.{Style.RESET_ALL}")
+        return
+
     while True:
         with open('sesi.txt', 'r') as file:
-            queries = [query.strip() for query in file.readlines()]
+            queries = file.readlines()
 
         for query in queries:
             try:
-                print(Fore.CYAN + "Processing account...")
-                token = get_token_and_login(query)
-                get_user_info(token)
+                token = retry_request(get_token_and_login, query.strip())
+                user_info = retry_request(get_user_info, token)
                 daily_bonus(token)
-                if check_tasks(token):
-                    claim_referral(token)
-            except Exception as e:
-                print(Fore.RED + f"Error occurred: {e}")
-                
-        wait_until_midnight()
+                claim_referral(token)
+    
+                while retry_request(fetch_and_check_tasks, token):
+                    print(f"{Fore.CYAN}Continuing to claim tasks...{Style.RESET_ALL}")
 
-process_queries()
+            except Exception as e:
+                print(f"{Fore.RED}Error processing query: {e}{Style.RESET_ALL}")
+
+        wait_until_midnight()
+        
+if __name__ == "__main__":
+    process_queries()
