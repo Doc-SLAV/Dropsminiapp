@@ -232,7 +232,7 @@ def process_queries():
         print(f"{Fore.RED}Error: sesi.txt file not found.{Style.RESET_ALL}")
         return
 
-    all_balances = []  # List to hold balances for all accounts
+    all_balances = []
 
     while True:
         with open('sesi.txt', 'r') as file:
@@ -241,15 +241,16 @@ def process_queries():
         for query in queries:
             try:
                 token = retry_request(get_token_and_login, query.strip())
-                # Fetch user info WITHOUT sending a Telegram message on first login
                 user_info = retry_request(get_user_info, token, send_message=False)
                 old_balance = user_info['balance']
 
                 daily_bonus(token)
                 claim_referral(token)
 
-                while retry_request(fetch_and_check_tasks, token):
-                    print(f"{Fore.CYAN}Continuing to claim tasks...{Style.RESET_ALL}")
+                tasks_available = retry_request(fetch_and_check_tasks, token)
+                if not tasks_available:
+                    print(f"{Fore.YELLOW}No tasks available to claim for account {user_info['tgUsername']}. Moving to next account.{Style.RESET_ALL}")
+                    continue
 
                 updated_user_info = retry_request(get_user_info, token)
                 new_balance = updated_user_info['balance']
@@ -263,14 +264,14 @@ def process_queries():
             except Exception as e:
                 print(f"{Fore.RED}Error processing query: {e}{Style.RESET_ALL}")
 
-            print(f"{Fore.YELLOW}Waiting for 1 hour before processing the next account...{Style.RESET_ALL}")
-            time.sleep(3600)  # 1 hour in seconds
-
         if all_balances:
             final_balance_message = "Here are the balances for all accounts after solving tasks:\n" + "\n".join(all_balances)
             send_telegram_message(final_balance_message)
         else:
             print(f"{Fore.YELLOW}No balances changed, no summary message sent.{Style.RESET_ALL}")
+
+        print(f"{Fore.YELLOW}Waiting for 1 hour before processing accounts again...{Style.RESET_ALL}")
+        time.sleep(3600)
 
         wait_until_midnight()
 
