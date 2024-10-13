@@ -232,7 +232,7 @@ def process_queries():
         print(f"{Fore.RED}Error: sesi.txt file not found.{Style.RESET_ALL}")
         return
 
-    all_balances = [] 
+    all_balances = []  # List to hold balances for all accounts
 
     while True:
         with open('sesi.txt', 'r') as file:
@@ -241,24 +241,15 @@ def process_queries():
         for query in queries:
             try:
                 token = retry_request(get_token_and_login, query.strip())
+                # Fetch user info WITHOUT sending a Telegram message on first login
                 user_info = retry_request(get_user_info, token, send_message=False)
                 old_balance = user_info['balance']
+
                 daily_bonus(token)
                 claim_referral(token)
 
-                should_continue = True
-                retry_attempts = 0 
-
-                while should_continue:
-                    should_continue = retry_request(fetch_and_check_tasks, token)
-
-                    if not should_continue:
-                        retry_attempts += 1
-                        print(f"{Fore.YELLOW}fetch_and_check_tasks failed. Retrying in 1 hour...{Style.RESET_ALL}")
-                        time.sleep(3600)
-                        if retry_attempts >= 2:
-                            print(f"{Fore.RED}Max retry attempts reached for fetching tasks. Moving to the next account.{Style.RESET_ALL}")
-                            break
+                while retry_request(fetch_and_check_tasks, token):
+                    print(f"{Fore.CYAN}Continuing to claim tasks...{Style.RESET_ALL}")
 
                 updated_user_info = retry_request(get_user_info, token)
                 new_balance = updated_user_info['balance']
@@ -271,6 +262,9 @@ def process_queries():
 
             except Exception as e:
                 print(f"{Fore.RED}Error processing query: {e}{Style.RESET_ALL}")
+
+            print(f"{Fore.YELLOW}Waiting for 1 hour before processing the next account...{Style.RESET_ALL}")
+            time.sleep(3600)  # 1 hour in seconds
 
         if all_balances:
             final_balance_message = "Here are the balances for all accounts after solving tasks:\n" + "\n".join(all_balances)
