@@ -14,6 +14,7 @@ a.k.a **etherDrop**
 | Multithreading                                            |     ✅     |
 | Auto-tasks                                                |     ✅     |
 | Daily Login                                               |     ✅     |
+| Claim Ref                                                 |     ✅     |
 | Send Notify to telegram                                   |     ✅     |
 
 ## Prerequisites
