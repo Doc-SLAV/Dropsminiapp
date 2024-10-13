@@ -42,7 +42,7 @@ git clone https://github.com/Doc-SLAV/Dropsminiapp.git
 cd Dropsminiapp
 python3 -m venv venv
 source venv/bin/activate
-pip3 install request
+pip3 install requests colorama
 python3 bot.py
 ```
 
@@ -53,7 +53,7 @@ git clone https://github.com/Doc-SLAV/Dropsminiapp.git
 cd Dropsminiapp
 python -m venv venv
 venv\Scripts\activate
-pip install request
+pip install requests colorama
 python bot.py
 ```
 
