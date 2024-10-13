@@ -136,7 +136,7 @@ def daily_bonus(token):
 def fetch_and_check_tasks(token):
     time.sleep(5)
     headers = get_headers(token)
-    print(f"{Fore.CYAN}Fetching and checking tasks from the external source...{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}Fetching and checking tasks from the category....{Style.RESET_ALL}")
 
     try:
         response = requests.get(f"{BASE_API_URL}{Endpoints.TASKS}", headers=headers)
@@ -234,7 +234,7 @@ def process_queries():
 
     all_balances = []
 
-    while True:
+    for run_count in range(2):
         with open('sesi.txt', 'r') as file:
             queries = file.readlines()
 
@@ -248,6 +248,7 @@ def process_queries():
                 claim_referral(token)
 
                 tasks_available = retry_request(fetch_and_check_tasks, token)
+
                 if not tasks_available:
                     print(f"{Fore.YELLOW}No tasks available to claim for account {user_info['tgUsername']}. Moving to next account.{Style.RESET_ALL}")
                     continue
@@ -270,10 +271,12 @@ def process_queries():
         else:
             print(f"{Fore.YELLOW}No balances changed, no summary message sent.{Style.RESET_ALL}")
 
-        print(f"{Fore.YELLOW}Waiting for 1 hour before processing accounts again...{Style.RESET_ALL}")
-        time.sleep(3600)
+        if run_count < 1:
+            print(f"{Fore.YELLOW}Waiting for 1 hour before claiming task (Run {run_count + 1}/2)...{Style.RESET_ALL}")
+            time.sleep(3600)
 
-        wait_until_midnight()
+    print(f"{Fore.YELLOW}Completed, now waiting until 00:01 UTC...{Style.RESET_ALL}")
+    wait_until_midnight()
 
 if __name__ == "__main__":
     process_queries()
