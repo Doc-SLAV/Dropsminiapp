@@ -56,16 +56,6 @@ venv\Scripts\activate
 pip install requests colorama
 python bot.py
 ```
-
-# Problem 
-
-```Attempting to login with payload...
-Request failed during login: 403 Client Error:  for url: https://api.miniapp.dropstab.com/api/auth/login
-Error on attempt 1: 403 Client Error:  for url: https://api.miniapp.dropstab.com/api/auth/login
-Retrying in 5 seconds...```
-because to many attempt for claiming task, ypur query already Expired, Just get your New Query 
-
-
 ### Contacts
 
 For support or questions, you can contact me
@@ -73,3 +63,11 @@ For support or questions, you can contact me
 [![Static Badge](https://img.shields.io/badge/Telegram-Channel-Link?style=for-the-badge&logo=Telegram&logoColor=white&logoSize=auto&color=blue)](https://t.me/buruhcrypt)
 [![Static Badge](https://img.shields.io/badge/Telegram-Channel-Link?style=for-the-badge&logo=Telegram&logoColor=white&logoSize=auto&color=blue)](https://t.me/zxcvbnmasdfghjklqwertyuiop_12345)
 
+# Problem 
+if you see this
+``` Attempting to login with payload...
+Request failed during login: 403 Client Error:  for url: https://api.miniapp.dropstab.com/api/auth/login
+Error on attempt 1: 403 Client Error:  for url: https://api.miniapp.dropstab.com/api/auth/login
+Retrying in 5 seconds... ```
+
+Because to many attempt for claiming task, ypur query already Expired, Just get your New Query.
