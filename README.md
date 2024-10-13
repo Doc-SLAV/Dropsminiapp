@@ -70,4 +70,4 @@ Request failed during login: 403 Client Error:  for url: https://api.miniapp.dro
 Error on attempt 1: 403 Client Error:  for url: https://api.miniapp.dropstab.com/api/auth/login
 Retrying in 5 seconds... ```
 
-Because to many attempt for claiming task, ypur query already Expired, Just get your New Query.
+Because to many attempt for claiming task, your query already Expired, Just get your New Query.
