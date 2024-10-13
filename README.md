@@ -57,6 +57,14 @@ pip install requests colorama
 python bot.py
 ```
 
+# Problem 
+
+```Attempting to login with payload...
+Request failed during login: 403 Client Error:  for url: https://api.miniapp.dropstab.com/api/auth/login
+Error on attempt 1: 403 Client Error:  for url: https://api.miniapp.dropstab.com/api/auth/login
+Retrying in 5 seconds...```
+because to many attempt for claiming task, ypur query already Expired, Just get your New Query 
+
 
 ### Contacts
 
