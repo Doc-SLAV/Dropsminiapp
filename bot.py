@@ -9,8 +9,8 @@ from colorama import Fore, Style, init
 
 init(autoreset=True)
 
-TELEGRAM_BOT_TOKEN = 'TELEGRAM_BOT_TOKEN'
-CHAT_ID = 'CHAT_ID'
+TELEGRAM_BOT_TOKEN = 'TELEGRAM_BOT_TOKEN' # 333217932:aoj3poeohdowa201eh10u
+CHAT_ID = 'CHAT_ID' # -263218379
 
 class Endpoints:
     AUTH_LOGIN = "/auth/login"
@@ -246,8 +246,19 @@ def process_queries():
                 daily_bonus(token)
                 claim_referral(token)
 
-                while retry_request(fetch_and_check_tasks, token):
-                    print(f"{Fore.CYAN}Continuing to claim tasks...{Style.RESET_ALL}")
+                should_continue = True
+                retry_attempts = 0 
+
+                while should_continue:
+                    should_continue = retry_request(fetch_and_check_tasks, token)
+
+                    if not should_continue:
+                        retry_attempts += 1
+                        print(f"{Fore.YELLOW}fetch_and_check_tasks failed. Retrying in 1 hour...{Style.RESET_ALL}")
+                        time.sleep(3600)
+                        if retry_attempts >= 2:
+                            print(f"{Fore.RED}Max retry attempts reached for fetching tasks. Moving to the next account.{Style.RESET_ALL}")
+                            break
 
                 updated_user_info = retry_request(get_user_info, token)
                 new_balance = updated_user_info['balance']
