@@ -279,4 +279,11 @@ def process_queries():
     wait_until_midnight()
 
 if __name__ == "__main__":
-    process_queries()
+    while True:
+        process_queries()
+
+        print(f"{Fore.GREEN}Processing for the current day completed. Waiting until the next midnight to restart...{Style.RESET_ALL}")
+
+        wait_until_midnight()
+
+        print(f"{Fore.CYAN}It's 00:01 UTC, starting the process for the next day...{Style.RESET_ALL}")
