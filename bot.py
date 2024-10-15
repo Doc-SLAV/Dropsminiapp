@@ -272,15 +272,3 @@ try:
         print(f"{Fore.CYAN}It's 00:01 UTC, starting the process for the next day...{Style.RESET_ALL}")
 except Exception as e:
     print(f"{Fore.RED}Unexpected error occurred: {e}{Style.RESET_ALL}")
-
-    except Exception as e:
-        print(f"{Fore.RED}Error occurred while processing queries: {e}{Style.RESET_ALL}")
-
-try:
-    while True:
-        process_queries()
-        print(f"{Fore.GREEN}Processing for the current day completed. Waiting until the next midnight to restart...{Style.RESET_ALL}")
-        wait_until_midnight()
-        print(f"{Fore.CYAN}It's 00:01 UTC, starting the process for the next day...{Style.RESET_ALL}")
-except Exception as e:
-    print(f"{Fore.RED}Unexpected error occurred: {e}{Style.RESET_ALL}")
