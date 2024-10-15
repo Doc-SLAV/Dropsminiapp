@@ -136,7 +136,7 @@ def daily_bonus(token):
 def fetch_and_check_tasks(token):
     time.sleep(5)
     headers = get_headers(token)
-    print(f"{Fore.CYAN}Fetching and checking tasks from the external source...{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}Fetching and checking tasks from the category....{Style.RESET_ALL}")
 
     try:
         response = requests.get(f"{BASE_API_URL}{Endpoints.TASKS}", headers=headers)
