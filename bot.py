@@ -6,6 +6,8 @@ import time
 import os
 from datetime import datetime, timedelta
 from colorama import Fore, Style, init
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 init(autoreset=True)
 
@@ -198,31 +200,46 @@ def verify_daily_task(token, task_id):
         print(f"{Fore.GREEN}Verify response data: {data}{Style.RESET_ALL}") 
     except requests.RequestException as e:
         print(f"{Fore.RED}Request failed while verifying task ID {task_id}: {e}{Style.RESET_ALL}")
-
+        
 def claim_referral(token):
     headers = get_headers(token)
     try:
-        print(f"{Fore.CYAN}Attempting to claim referral link...{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}Attempting to claim referral bonus...{Style.RESET_ALL}")
         response = requests.post(f"{BASE_API_URL}{Endpoints.CLAIM_REF}", headers=headers)
         response.raise_for_status()
         data = response.json()
-        print(f"{Fore.GREEN}Claim referral response data: {data}{Style.RESET_ALL}")  
+        print(f"{Fore.GREEN}Claim referral response: {data}{Style.RESET_ALL}")
     except requests.RequestException as e:
-        print(f"{Fore.RED}Request failed while claiming referral link: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Request failed while claiming referral bonus: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Response status code: {response.status_code}, Response body: {response.text}{Style.RESET_ALL}")
 
-def dynamic_countdown(target_time):
-    now = datetime.utcnow()
-    countdown_seconds = int((target_time - now).total_seconds())
-    while countdown_seconds > 0:
-        print(f"{Fore.CYAN}Time remaining until midnight UTC: {timedelta(seconds=countdown_seconds)}{Style.RESET_ALL}", end='\r')
-        time.sleep(1)
-        countdown_seconds -= 1
+def process_single_query(query):
+    try:
+        token = retry_request(get_token_and_login, query.strip())
+        user_info = retry_request(get_user_info, token, send_message=False)
+        old_balance = user_info['balance']
 
-def wait_until_midnight():
-    now = datetime.utcnow()
-    target_time = (now + timedelta(days=1)).replace(hour=0, minute=1, second=0, microsecond=0)
-    print(f"{Fore.CYAN}Waiting until 00:01 UTC... Current time: {now}{Style.RESET_ALL}")
-    dynamic_countdown(target_time)
+        daily_bonus(token)
+        claim_referral(token)
+
+        tasks_available = retry_request(fetch_and_check_tasks, token)
+
+        if not tasks_available:
+            print(f"{Fore.YELLOW}No tasks available to claim for account {user_info['tgUsername']}. Moving to next account.{Style.RESET_ALL}")
+            return None
+
+        updated_user_info = retry_request(get_user_info, token)
+        new_balance = updated_user_info['balance']
+
+        if new_balance != old_balance:
+            account_balance_message = f"<b>Account:</b> {updated_user_info['tgUsername']}\n<b>Balance:</b> {new_balance}"
+            return account_balance_message
+        else:
+            print(f"{Fore.YELLOW}No change in balance for account {updated_user_info['tgUsername']}. Skipping message.{Style.RESET_ALL}")
+            return None
+    except Exception as e:
+        print(f"{Fore.RED}Error processing query: {e}{Style.RESET_ALL}")
+        return None
 
 def process_queries():
     if not os.path.exists('sesi.txt'):
@@ -235,32 +252,16 @@ def process_queries():
         with open('sesi.txt', 'r') as file:
             queries = file.readlines()
 
-        for query in queries:
-            try:
-                token = retry_request(get_token_and_login, query.strip())
-                user_info = retry_request(get_user_info, token, send_message=False)
-                old_balance = user_info['balance']
+        if use_multithreading:
+            with ThreadPoolExecutor(max_workers=5) as executor:  
+                results = list(executor.map(process_single_query, queries))
 
-                daily_bonus(token)
-                claim_referral(token)
-
-                tasks_available = retry_request(fetch_and_check_tasks, token)
-
-                if not tasks_available:
-                    print(f"{Fore.YELLOW}No tasks available to claim for account {user_info['tgUsername']}. Moving to next account.{Style.RESET_ALL}")
-                    continue
-
-                updated_user_info = retry_request(get_user_info, token)
-                new_balance = updated_user_info['balance']
-
-                if new_balance != old_balance:
-                    account_balance_message = f"<b>Account:</b> {updated_user_info['tgUsername']}\n<b>Balance:</b> {new_balance}"
-                    all_balances.append(account_balance_message)
-                else:
-                    print(f"{Fore.YELLOW}No change in balance for account {updated_user_info['tgUsername']}. Skipping message.{Style.RESET_ALL}")
-
-            except Exception as e:
-                print(f"{Fore.RED}Error processing query: {e}{Style.RESET_ALL}")
+            all_balances = [result for result in results if result]
+        else:
+            for query in queries:
+                balance_message = process_single_query(query)
+                if balance_message:
+                    all_balances.append(balance_message)
 
         if all_balances:
             final_balance_message = "Here are the balances for all accounts after solving tasks:\n" + "\n".join(all_balances)
@@ -274,6 +275,15 @@ def process_queries():
 
     print(f"{Fore.YELLOW}Completed, now waiting until 00:01 UTC...{Style.RESET_ALL}")
     wait_until_midnight()
+
+def wait_until_midnight():
+    now = datetime.utcnow()
+    midnight = (now + timedelta(days=1)).replace(hour=0, minute=1, second=0, microsecond=0)
+    seconds_until_midnight = (midnight - now).total_seconds()
+    print(f"{Fore.YELLOW}Waiting {seconds_until_midnight} seconds until midnight...{Style.RESET_ALL}")
+    time.sleep(seconds_until_midnight)
+
+use_multithreading = input("Activate multi-threading (y/n): ").strip().lower() == 'y'
 
 try:
     while True:
