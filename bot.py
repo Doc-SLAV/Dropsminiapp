@@ -253,7 +253,7 @@ def process_queries():
             queries = file.readlines()
 
         if use_multithreading:
-            with ThreadPoolExecutor(max_workers=5) as executor:  
+            with ThreadPoolExecutor(max_workers=2) as executor:  
                 results = list(executor.map(process_single_query, queries))
 
             all_balances = [result for result in results if result]
