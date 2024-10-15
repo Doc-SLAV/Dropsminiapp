@@ -19,7 +19,7 @@ class Endpoints:
     TASKS = "/quest"
     VERIFY_TASK = "/quest/{task_id}/verify"
     CLAIM_TASK = "/quest/{task_id}/claim"
-    CLAIM_REF = "/refLink/claim"
+    CLAIM_REF = "/refLink/claim"  
 
 BASE_API_URL = "https://api.miniapp.dropstab.com/api"
 BASE_HEADERS = {
@@ -106,7 +106,7 @@ def send_telegram_message(message):
     payload = {
         'chat_id': CHAT_ID,
         'text': message,
-        'parse_mode': 'HTML'
+        'parse_mode': 'HTML' 
     }
     
     try:
@@ -136,7 +136,7 @@ def daily_bonus(token):
 def fetch_and_check_tasks(token):
     time.sleep(5)
     headers = get_headers(token)
-    print(f"{Fore.CYAN}Fetching and checking tasks from the category....{Style.RESET_ALL}")
+    print(f"{Fore.CYAN}Fetching and checking tasks from the external source...{Style.RESET_ALL}")
 
     try:
         response = requests.get(f"{BASE_API_URL}{Endpoints.TASKS}", headers=headers)
@@ -191,99 +191,51 @@ def claim_task(token, task_id):
 def verify_daily_task(token, task_id):
     headers = get_headers(token)
     try:
-        print(f"{Fore.CYAN}Verifying daily task with ID: {task_id}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}Attempting to verify daily task with ID: {task_id}{Style.RESET_ALL}")
         response = requests.put(f"{BASE_API_URL}{Endpoints.VERIFY_TASK.format(task_id=task_id)}", headers=headers)
         response.raise_for_status()
         data = response.json()
-        print(f"{Fore.GREEN}Verify response data: {data}{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}Verify response data: {data}{Style.RESET_ALL}") 
     except requests.RequestException as e:
-        print(f"{Fore.RED}Request failed while verifying daily task ID {task_id}: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Request failed while verifying task ID {task_id}: {e}{Style.RESET_ALL}")
 
-def claim_referral(token):
-    headers = get_headers(token)
-    try:
-        print(f"{Fore.CYAN}Attempting to claim referral link...{Style.RESET_ALL}")
-        response = requests.post(f"{BASE_API_URL}{Endpoints.CLAIM_REF}", headers=headers)
-        response.raise_for_status()
-        data = response.json()
-        print(f"{Fore.GREEN}Claim referral response data: {data}{Style.RESET_ALL}") 
-    except requests.RequestException as e:
-        print(f"{Fore.RED}Request failed while claiming referral link: {e}{Style.RESET_ALL}")
-
-def dynamic_countdown(sleep_time):
-    while sleep_time > 0:
-        hours, remainder = divmod(sleep_time, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        print(f"\r{Fore.YELLOW}Waiting until 00:01 UTC to restart... {int(hours):02}:{int(minutes):02}:{int(seconds):02}{Style.RESET_ALL}", end="")
+def dynamic_countdown(target_time):
+    now = datetime.utcnow()
+    countdown_seconds = int((target_time - now).total_seconds())
+    while countdown_seconds > 0:
+        print(f"{Fore.CYAN}Time remaining until midnight UTC: {timedelta(seconds=countdown_seconds)}{Style.RESET_ALL}", end='\r')
         time.sleep(1)
-        sleep_time -= 1
-    print() 
+        countdown_seconds -= 1
 
 def wait_until_midnight():
     now = datetime.utcnow()
-    next_run = now.replace(hour=0, minute=1, second=0, microsecond=0)
-    if now >= next_run:
-        next_run += timedelta(days=1)
-    sleep_time = (next_run - now).total_seconds()
-    dynamic_countdown(int(sleep_time))
+    target_time = (now + timedelta(days=1)).replace(hour=0, minute=1, second=0, microsecond=0)
+    print(f"{Fore.CYAN}Waiting until 00:01 UTC... Current time: {now}{Style.RESET_ALL}")
+    dynamic_countdown(target_time)
 
 def process_queries():
-    if not os.path.exists('sesi.txt'):
-        print(f"{Fore.RED}Error: sesi.txt file not found.{Style.RESET_ALL}")
-        return
+    try:
+        print(f"{Fore.CYAN}Starting to process queries...{Style.RESET_ALL}")
+        for filename in os.listdir("."):
+            if filename.endswith(".json"):
+                with open(filename, "r") as f:
+                    payload = json.load(f)
+                token = retry_request(get_token_and_login, payload)
+                user_info = retry_request(get_user_info, token)
+                retry_request(daily_bonus, token)
+                tasks_completed = retry_request(fetch_and_check_tasks, token)
 
-    all_balances = []
+                if tasks_completed:
+                    send_telegram_message(f"<b>Tasks completed for:</b> {user_info['tgUsername']}")
 
-    for run_count in range(2):
-        with open('sesi.txt', 'r') as file:
-            queries = file.readlines()
+    except Exception as e:
+        print(f"{Fore.RED}Error occurred while processing queries: {e}{Style.RESET_ALL}")
 
-        for query in queries:
-            try:
-                token = retry_request(get_token_and_login, query.strip())
-                user_info = retry_request(get_user_info, token, send_message=False)
-                old_balance = user_info['balance']
-
-                daily_bonus(token)
-                claim_referral(token)
-
-                tasks_available = retry_request(fetch_and_check_tasks, token)
-
-                if not tasks_available:
-                    print(f"{Fore.YELLOW}No tasks available to claim for account {user_info['tgUsername']}. Moving to next account.{Style.RESET_ALL}")
-                    continue
-
-                updated_user_info = retry_request(get_user_info, token)
-                new_balance = updated_user_info['balance']
-
-                if new_balance != old_balance:
-                    account_balance_message = f"<b>Account:</b> {updated_user_info['tgUsername']}\n<b>Balance:</b> {new_balance}"
-                    all_balances.append(account_balance_message)
-                else:
-                    print(f"{Fore.YELLOW}No change in balance for account {updated_user_info['tgUsername']}. Skipping message.{Style.RESET_ALL}")
-
-            except Exception as e:
-                print(f"{Fore.RED}Error processing query: {e}{Style.RESET_ALL}")
-
-        if all_balances:
-            final_balance_message = "Here are the balances for all accounts after solving tasks:\n" + "\n".join(all_balances)
-            send_telegram_message(final_balance_message)
-        else:
-            print(f"{Fore.YELLOW}No balances changed, no summary message sent.{Style.RESET_ALL}")
-
-        if run_count < 1:
-            print(f"{Fore.YELLOW}Waiting for 1 hour before claiming task (Run {run_count + 1}/2)...{Style.RESET_ALL}")
-            time.sleep(3600)
-
-    print(f"{Fore.YELLOW}Completed, now waiting until 00:01 UTC...{Style.RESET_ALL}")
-    wait_until_midnight()
-
-if __name__ == "__main__":
+try:
     while True:
         process_queries()
-
         print(f"{Fore.GREEN}Processing for the current day completed. Waiting until the next midnight to restart...{Style.RESET_ALL}")
-
         wait_until_midnight()
-
         print(f"{Fore.CYAN}It's 00:01 UTC, starting the process for the next day...{Style.RESET_ALL}")
+except Exception as e:
+    print(f"{Fore.RED}Unexpected error occurred: {e}{Style.RESET_ALL}")
