@@ -199,6 +199,17 @@ def verify_daily_task(token, task_id):
     except requests.RequestException as e:
         print(f"{Fore.RED}Request failed while verifying task ID {task_id}: {e}{Style.RESET_ALL}")
 
+def claim_referral(token):
+    headers = get_headers(token)
+    try:
+        print(f"{Fore.CYAN}Attempting to claim referral link...{Style.RESET_ALL}")
+        response = requests.post(f"{BASE_API_URL}{Endpoints.CLAIM_REF}", headers=headers)
+        response.raise_for_status()
+        data = response.json()
+        print(f"{Fore.GREEN}Claim referral response data: {data}{Style.RESET_ALL}")  
+    except requests.RequestException as e:
+        print(f"{Fore.RED}Request failed while claiming referral link: {e}{Style.RESET_ALL}")
+
 def dynamic_countdown(target_time):
     now = datetime.utcnow()
     countdown_seconds = int((target_time - now).total_seconds())
