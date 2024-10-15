@@ -214,19 +214,64 @@ def wait_until_midnight():
     dynamic_countdown(target_time)
 
 def process_queries():
-    try:
-        print(f"{Fore.CYAN}Starting to process queries...{Style.RESET_ALL}")
-        for filename in os.listdir("."):
-            if filename.endswith(".json"):
-                with open(filename, "r") as f:
-                    payload = json.load(f)
-                token = retry_request(get_token_and_login, payload)
-                user_info = retry_request(get_user_info, token)
-                retry_request(daily_bonus, token)
-                tasks_completed = retry_request(fetch_and_check_tasks, token)
+    if not os.path.exists('sesi.txt'):
+        print(f"{Fore.RED}Error: sesi.txt file not found.{Style.RESET_ALL}")
+        return
 
-                if tasks_completed:
-                    send_telegram_message(f"<b>Tasks completed for:</b> {user_info['tgUsername']}")
+    all_balances = []
+
+    for run_count in range(2):
+        with open('sesi.txt', 'r') as file:
+            queries = file.readlines()
+
+        for query in queries:
+            try:
+                token = retry_request(get_token_and_login, query.strip())
+                user_info = retry_request(get_user_info, token, send_message=False)
+                old_balance = user_info['balance']
+
+                daily_bonus(token)
+                claim_referral(token)
+
+                tasks_available = retry_request(fetch_and_check_tasks, token)
+
+                if not tasks_available:
+                    print(f"{Fore.YELLOW}No tasks available to claim for account {user_info['tgUsername']}. Moving to next account.{Style.RESET_ALL}")
+                    continue
+
+                updated_user_info = retry_request(get_user_info, token)
+                new_balance = updated_user_info['balance']
+
+                if new_balance != old_balance:
+                    account_balance_message = f"<b>Account:</b> {updated_user_info['tgUsername']}\n<b>Balance:</b> {new_balance}"
+                    all_balances.append(account_balance_message)
+                else:
+                    print(f"{Fore.YELLOW}No change in balance for account {updated_user_info['tgUsername']}. Skipping message.{Style.RESET_ALL}")
+
+            except Exception as e:
+                print(f"{Fore.RED}Error processing query: {e}{Style.RESET_ALL}")
+
+        if all_balances:
+            final_balance_message = "Here are the balances for all accounts after solving tasks:\n" + "\n".join(all_balances)
+            send_telegram_message(final_balance_message)
+        else:
+            print(f"{Fore.YELLOW}No balances changed, no summary message sent.{Style.RESET_ALL}")
+
+        if run_count < 1:
+            print(f"{Fore.YELLOW}Waiting for 1 hour before claiming task (Run {run_count + 1}/2)...{Style.RESET_ALL}")
+            time.sleep(3600)
+
+    print(f"{Fore.YELLOW}Completed, now waiting until 00:01 UTC...{Style.RESET_ALL}")
+    wait_until_midnight()
+
+try:
+    while True:
+        process_queries()
+        print(f"{Fore.GREEN}Processing for the current day completed. Waiting until the next midnight to restart...{Style.RESET_ALL}")
+        wait_until_midnight()
+        print(f"{Fore.CYAN}It's 00:01 UTC, starting the process for the next day...{Style.RESET_ALL}")
+except Exception as e:
+    print(f"{Fore.RED}Unexpected error occurred: {e}{Style.RESET_ALL}")
 
     except Exception as e:
         print(f"{Fore.RED}Error occurred while processing queries: {e}{Style.RESET_ALL}")
